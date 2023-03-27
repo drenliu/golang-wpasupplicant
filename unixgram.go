@@ -324,6 +324,15 @@ func (uc *unixgramConn) RemoveAllNetworks() error {
 	return uc.runCommand("REMOVE_NETWORK all")
 }
 
+func (uc *unixgramConn) SignalPoll() SignalPollResult {
+	resp, err := uc.cmd("SIGNAL_POLL")
+	if err != nil {
+		return nil
+	}
+
+	return parseSignalPoll(bytes.NewBuffer(resp))
+
+}
 func (uc *unixgramConn) SetNetwork(networkID int, variable string, value string) error {
 	var cmd string
 
@@ -577,4 +586,44 @@ func parseScanResults(resp io.Reader) (res []ScanResult, errs []error) {
 	}
 
 	return
+}
+
+// parseSignalPoll parses the SIGNAL_POLL output from wpa_supplicant.  This
+// is split out from SignalPoll() to make testing easier.
+func parseSignalPoll(resp io.Reader) SignalPollResult {
+	// In an attempt to make our parser more resilient, we start by
+	// parsing the header line and using that to determine the column
+	// order.
+	s := bufio.NewScanner(resp)
+	if !s.Scan() {
+
+		return nil
+	}
+	rssi, linkSpeed, noise, freq, agvRssi := -1, -1, -1, -1, -1
+	width := ""
+	fmt.Println(s.Text())
+	for s.Scan() {
+		fields := strings.Split(s.Text(), "\n")
+		ln := strings.Split(fields[0], "=")
+		if len(ln) > 0 {
+			switch strings.TrimSpace(ln[0]) {
+			case "RSSI":
+				rssi, _ = strconv.Atoi(ln[1])
+			case "LINKSPEED":
+				linkSpeed, _ = strconv.Atoi(ln[1])
+			case "NOISE":
+				noise, _ = strconv.Atoi(ln[1])
+			case "FREQUENCY":
+				freq, _ = strconv.Atoi(ln[1])
+			case "WIDTH":
+				width = ln[1]
+			case "AVG_RSSI":
+				agvRssi, _ = strconv.Atoi(ln[1])
+
+			}
+		} else {
+			return nil
+		}
+	}
+	return &signalPoll{rssi: rssi, linkSpeed: linkSpeed, noise: noise, width: width, freq: freq, avgRssi: agvRssi}
 }

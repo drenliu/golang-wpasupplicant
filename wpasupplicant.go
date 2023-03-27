@@ -174,6 +174,29 @@ type WPAEvent struct {
 	Arguments map[string]string
 	Line      string
 }
+type SignalPollResult interface {
+	Rssi() int
+	LinkSPeed() int
+	Noise() int
+	Freq() int
+	Width() string
+	AvgRssi() int
+}
+type signalPoll struct {
+	rssi      int
+	linkSpeed int
+	noise     int
+	freq      int
+	width     string
+	avgRssi   int
+}
+
+func (s *signalPoll) Rssi() int      { return s.rssi }
+func (s *signalPoll) LinkSPeed() int { return s.linkSpeed }
+func (s *signalPoll) Noise() int     { return s.noise }
+func (s *signalPoll) Freq() int      { return s.freq }
+func (s *signalPoll) Width() string  { return s.width }
+func (s *signalPoll) AvgRssi() int   { return s.avgRssi }
 
 // Conn is a connection to wpa_supplicant over one of its communication
 // channels.
@@ -226,7 +249,7 @@ type Conn interface {
 	// Reconnect sends a RECONNECT command to the wpa_supplicant. Returns error when
 	// command fails.
 	Reconnect() error
-
+	SignalPoll() SignalPollResult
 	// ListNetworks returns the currently configured networks.
 	ListNetworks() ([]ConfiguredNetwork, error)
 
