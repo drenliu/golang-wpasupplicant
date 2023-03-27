@@ -324,13 +324,13 @@ func (uc *unixgramConn) RemoveAllNetworks() error {
 	return uc.runCommand("REMOVE_NETWORK all")
 }
 
-func (uc *unixgramConn) SignalPoll() SignalPollResult {
+func (uc *unixgramConn) SignalPoll() (SignalPollResult, error) {
 	resp, err := uc.cmd("SIGNAL_POLL")
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	return parseSignalPoll(bytes.NewBuffer(resp))
+	return parseSignalPoll(bytes.NewBuffer(resp)), nil
 
 }
 func (uc *unixgramConn) SetNetwork(networkID int, variable string, value string) error {
@@ -595,18 +595,13 @@ func parseSignalPoll(resp io.Reader) SignalPollResult {
 	// parsing the header line and using that to determine the column
 	// order.
 	s := bufio.NewScanner(resp)
-	if !s.Scan() {
-
-		return nil
-	}
 	rssi, linkSpeed, noise, freq, agvRssi := -1, -1, -1, -1, -1
 	width := ""
-	fmt.Println(s.Text())
 	for s.Scan() {
 		fields := strings.Split(s.Text(), "\n")
 		ln := strings.Split(fields[0], "=")
 		if len(ln) > 0 {
-			switch strings.TrimSpace(ln[0]) {
+			switch ln[0] {
 			case "RSSI":
 				rssi, _ = strconv.Atoi(ln[1])
 			case "LINKSPEED":

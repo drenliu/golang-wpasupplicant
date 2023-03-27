@@ -249,7 +249,7 @@ type Conn interface {
 	// Reconnect sends a RECONNECT command to the wpa_supplicant. Returns error when
 	// command fails.
 	Reconnect() error
-	SignalPoll() SignalPollResult
+	SignalPoll() (SignalPollResult, error)
 	// ListNetworks returns the currently configured networks.
 	ListNetworks() ([]ConfiguredNetwork, error)
 
